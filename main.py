@@ -366,16 +366,16 @@ guide_data = {
         "severe_bg": "images/nosebleedSevere.jpg"
     },
     "Insect Bites": {
-        "images": [f"images/insect_bite{str(i).zfill(2)}.jpg" for i in range(1, 6)],
+        "images": [f"images/insectbite{str(i).zfill(2)}.jpg" for i in range(1, 8)],
         "screen": "insect_bite_guide",
         "key": "insect bites",
-        "question_bg": "images/insectBiteQuestions.jpg",
+        "question_bg": "images/insectbiteQuestions.jpg",
         "questions": [
             "Is the person having trouble breathing or swallowing?",
             "Is there swelling on the face, lips, or throat?",
             "Is the person dizzy, confused, or showing signs of fainting?"
         ],
-        "severe_bg": "images/insectBiteSevere.jpg"
+        "severe_bg": "images/insectbiteSevere.jpg"
     },
     "Burns (1st or 2nd)": {
         "images": [f"images/burns{str(i).zfill(2)}.jpg" for i in range(1, 8)],
