@@ -352,7 +352,43 @@ guide_data = {
             "Does the skin look very dark, purple, or oddly shaped?"
         ],
         "severe_bg": "images/bruiseSevere.jpg"
-    }
+    },
+    "Nosebleeds": {
+        "images": [f"images/nosebleed{str(i).zfill(2)}.jpg" for i in range(1, 8)],
+        "screen": "nosebleed_guide",
+        "key": "nosebleeds",
+        "question_bg": "images/nosebleedQuestions.jpg",
+        "questions": [
+            "Has the nosebleed lasted more than 20 minutes?",
+            "Was the nosebleed caused by a head injury or trauma?",
+            "Is the person feeling faint, dizzy, or very weak?"
+        ],
+        "severe_bg": "images/nosebleedSevere.jpg"
+    },
+    "Insect Bites": {
+        "images": [f"images/insect_bite{str(i).zfill(2)}.jpg" for i in range(1, 6)],
+        "screen": "insect_bite_guide",
+        "key": "insect bites",
+        "question_bg": "images/insectBiteQuestions.jpg",
+        "questions": [
+            "Is the person having trouble breathing or swallowing?",
+            "Is there swelling on the face, lips, or throat?",
+            "Is the person dizzy, confused, or showing signs of fainting?"
+        ],
+        "severe_bg": "images/insectBiteSevere.jpg"
+    },
+    "Burns (1st or 2nd)": {
+        "images": [f"images/burns{str(i).zfill(2)}.jpg" for i in range(1, 8)],
+        "screen": "burns_guide",
+        "key": "burns",
+        "question_bg": "images/burnsQuestions.jpg",
+        "questions": [
+            "Is the burn larger than the size of the person's hand?",
+            "Are there open blisters or raw, peeling skin?",
+            "Was the burn caused by chemicals or electricity?"
+        ],
+        "severe_bg": "images/burnsSevere.jpg"
+    },
 }
 
 class TriageScreen(MDScreen):
