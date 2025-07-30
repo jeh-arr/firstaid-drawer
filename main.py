@@ -330,14 +330,28 @@ guide_data = {
         "severe_bg": "images/sprainSevere.jpg"
     },
     "Laceration (Cut)": {
-        "images": [f"images/laceration{str(i).zfill(2)}.jpg" for i in range(1, 9)],
+        "images": [f"images/laceration{str(i).zfill(2)}.jpg" for i in range(1, 10)],
         "screen": "laceration_guide",
-        "key": "laceration"
+        "key": "laceration",
+        "question_bg": "images/lacerationQuestions.jpg",
+        "questions": [
+            "Is the wound bleeding heavily and not stopping?",
+            "Is something stuck in the wound (glass, metal)?",
+            "Is the cut deep or very large?"
+        ],
+        "severe_bg": "images/lacerationSevere.jpg"
     },
     "Bruise / Contusion": {
         "images": [f"images/bruise{str(i).zfill(2)}.jpg" for i in range(1, 6)],
         "screen": "bruise_guide",
-        "key": "bruise"
+        "key": "bruise",
+        "question_bg": "images/bruiseQuestions.jpg",
+        "questions": [
+            "Is there severe pain or swelling in the injured area?",
+            "Was the bruise caused by a strong impact to the head, chest, or back?",
+            "Does the skin look very dark, purple, or oddly shaped?"
+        ],
+        "severe_bg": "images/bruiseSevere.jpg"
     }
 }
 
@@ -437,12 +451,59 @@ class TriageScreen(MDScreen):
             self.manager.current = guide_data[self.data]["screen"]
 
     def show_dialog(self):
-        self.dialog = MDDialog(
+        content = MDBoxLayout(
+            orientation='vertical',
+            spacing=dp(20),
+            padding=[dp(20), dp(20), dp(20), dp(20)],
+            size_hint_y=None,
+            height=dp(150),
+        )
+
+        content.add_widget(Label(
             text="This may be a severe case. Do you want to call for emergency assistance?",
-            buttons=[
-                MDRaisedButton(text="Cancel", on_release=lambda x: self.dialog.dismiss()),
-                MDRaisedButton(text="Continue", on_release=self.goto_severe_screen)
-            ]
+            color =get_color_from_hex("#7c0a0a"),
+            font_name="Spartan-Medium",
+            
+            font_size="30sp",
+            halign="center",
+            valign="middle"
+        ))
+
+        button_box = MDBoxLayout(
+            orientation="horizontal",
+            spacing=dp(20),
+            padding=[dp(40), 0, dp(40), 0],
+            size_hint_y=None,
+            size_hint=(.3, None),
+            pos_hint={'center_x': 0.85},
+            height=dp(60),
+        )
+
+        button_box.add_widget(MDRaisedButton(
+            text="Cancel",
+            md_bg_color=get_color_from_hex("#7c0a0a"),
+            font_size="16sp",
+            pos_hint={"center_x": 0.5},
+            size_hint =(.8, None),
+            on_release=lambda x: self.dialog.dismiss()
+        ))
+        button_box.add_widget(MDRaisedButton(
+            text="Continue",
+            md_bg_color=get_color_from_hex("#7c0a0a"),
+            font_size="16sp",
+            pos_hint={"center_x": 0.5},
+            size_hint =(.8, None),
+            on_release=self.goto_severe_screen
+        ))
+
+        content.add_widget(button_box)
+
+        self.dialog = MDDialog(
+            type="custom",
+            content_cls=content,
+            size_hint=(0.6, None),
+            height=dp(220),
+            auto_dismiss=False,
         )
         self.dialog.open()
 
