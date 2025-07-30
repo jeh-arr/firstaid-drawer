@@ -342,7 +342,7 @@ guide_data = {
         "severe_bg": "images/lacerationSevere.jpg"
     },
     "Bruise / Contusion": {
-        "images": [f"images/bruise{str(i).zfill(2)}.jpg" for i in range(1, 6)],
+        "images": [f"images/bruise{str(i).zfill(2)}.jpg" for i in range(1, 7)],
         "screen": "bruise_guide",
         "key": "bruise",
         "question_bg": "images/bruiseQuestions.jpg",
