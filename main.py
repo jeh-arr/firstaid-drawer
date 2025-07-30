@@ -1,6 +1,15 @@
 from kivy.config import Config
 Config.set('graphics', 'fullscreen', 'auto')
-import RPi.GPIO as GPIO
+try:
+    import RPi.GPIO as GPIO
+except ImportError:
+    class MockGPIO:
+        BCM = OUT = HIGH = LOW = None
+        def setmode(self, *_): pass
+        def setup(self, *_): pass
+        def output(self, *_): pass
+        def cleanup(self): pass
+    GPIO = MockGPIO()
 from kivy.core.window import Window
 Window.clearcolor = (0.95, 0.88, 0.7, 1)
 from kivy.app import App
@@ -25,6 +34,7 @@ from kivy.uix.modalview import ModalView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
+from kivy.animation import Animation
 import time as t
 from time import time
 from kivymd.uix.textfield import MDTextField
@@ -310,7 +320,14 @@ guide_data = {
     "Sprains and Strains": {
         "images": [f"images/sprain{str(i).zfill(2)}.jpg" for i in range(1, 7)],
         "screen": "sprain_guide",
-        "key": "sprains"
+        "key": "sprains",
+        "question_bg": "images/sprainQuestions.jpg",
+        "questions": [
+            "Did you hear a “pop” or feel a snap when the injury happened?",
+            "Is the area swollen, bruised, or painful to move?",
+            "Is the person unable to move the area at all?"
+        ],
+        "severe_bg": "images/sprainSevere.jpg"
     },
     "Laceration (Cut)": {
         "images": [f"images/laceration{str(i).zfill(2)}.jpg" for i in range(1, 9)],
@@ -323,6 +340,128 @@ guide_data = {
         "key": "bruise"
     }
 }
+
+class TriageScreen(MDScreen):
+    def on_pre_enter(self):
+        self.question_index = 0
+        self.data = self.manager.current_data
+        self.questions = guide_data[self.data]["questions"]
+        self.build_ui()
+        # Set background if available
+        bg_path = guide_data[self.data].get("question_bg")
+        if bg_path and hasattr(self, "bg"):
+            self.bg.source = bg_path
+
+        
+        self.display_question()
+
+    def build_ui(self):
+        self.clear_widgets()
+
+        self.bg = Image(source="", allow_stretch=True, keep_ratio=False)
+        self.add_widget(self.bg)
+
+        layout = BoxLayout(orientation='vertical', spacing=40, padding=60)
+        layout.size_hint = (1, 1)
+        layout.pos_hint = {'center_x': 0.5, 'center_y': 0.5}
+        layout.add_widget(Widget(size_hint_y=0.35))
+        self.question_label = Label(
+            text=self.questions[0],
+            color=get_color_from_hex("#7c0a0a"),
+            font_name="Spartan-Medium",
+            font_size="50sp",
+            halign="center",
+            valign="middle"
+        )
+        self.question_label.bind(size=self.question_label.setter("text_size"))
+        self.question_label.opacity = 1
+        layout.add_widget(self.question_label)
+        self.question_label.size_hint_y = 0.15
+        btn_layout = BoxLayout(
+            orientation='horizontal',
+            spacing=60,
+            size_hint=(.3, None),
+            height=120,
+            pos_hint={'center_x': 0.5}
+        )
+
+        yes_btn = MDRaisedButton(
+            text="YES",
+            md_bg_color=get_color_from_hex("#4CAF50"),
+            font_size="50sp",            
+            pos_hint={"center_x": 0.5},
+            size_hint =(.8, None),
+            height=dp(120),
+        )
+        no_btn = MDRaisedButton(
+            text="NO",
+            md_bg_color=get_color_from_hex("#F44336"),
+            font_size="50sp",
+            pos_hint={"center_x": 0.5},
+            size_hint =(.8, None),
+            height=dp(120),
+        )
+        
+        yes_btn.bind(on_release=self.on_yes)
+        no_btn.bind(on_release=self.on_no)
+
+        btn_layout.add_widget(yes_btn)
+        btn_layout.add_widget(no_btn)
+        layout.add_widget(btn_layout)
+        btn_layout.size_hint_y = 0.15
+        layout.add_widget(Widget(size_hint_y=0.35))
+        
+        self.add_widget(layout)
+
+    def display_question(self):
+        question = self.questions[self.question_index]
+        anim_out = Animation(opacity=0, duration=0.2)
+        anim_in = Animation(opacity=1, duration=0.2)
+
+        def update_label(*_):
+            self.question_label.text = question
+            anim_in.start(self.question_label)
+
+        anim_out.bind(on_complete=update_label)
+        anim_out.start(self.question_label)
+
+
+    def on_yes(self, *args):
+        self.show_dialog()
+
+    def on_no(self, *args):
+        self.question_index += 1
+        if self.question_index < len(self.questions):
+            self.display_question()
+        else:
+            self.manager.current = guide_data[self.data]["screen"]
+
+    def show_dialog(self):
+        self.dialog = MDDialog(
+            text="This may be a severe case. Do you want to call for emergency assistance?",
+            buttons=[
+                MDRaisedButton(text="Cancel", on_release=lambda x: self.dialog.dismiss()),
+                MDRaisedButton(text="Continue", on_release=self.goto_severe_screen)
+            ]
+        )
+        self.dialog.open()
+
+    def goto_severe_screen(self, *args):
+        self.dialog.dismiss()
+        screen = self.manager.get_screen("severe_screen")
+        screen.set_background(guide_data[self.data]["severe_bg"])
+        self.manager.current = "severe_screen"
+
+class SevereScreen(MDScreen):
+    def set_background(self, image_path):
+        self.clear_widgets()
+        layout = BoxLayout(orientation='vertical')
+        layout.add_widget(Image(source=image_path, allow_stretch=True, keep_ratio=False))
+        layout.add_widget(MDRaisedButton(text="Main Menu", size_hint=(None, None), size=(200, 60), pos_hint={"center_x": 0.5}, on_release=self.goto_main))
+        self.add_widget(layout)
+
+    def goto_main(self, *args):
+        self.manager.current = "start"
 
 class EmergencyScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -379,8 +518,7 @@ class EmergencyScreen(MDScreen):
             )
             
             if label in guide_data:
-                screen_name = guide_data[label]["screen"]
-                btn.bind(on_release=lambda x, name=screen_name, key=label: self.set_emergency_and_go(name, key))
+                btn.bind(on_release=lambda x, key=label: self.set_emergency_and_go("triage", key))
 
             grid.add_widget(btn)
 
@@ -411,9 +549,8 @@ class EmergencyScreen(MDScreen):
         self.add_widget(layout)
         
     def set_emergency_and_go(self, screen_name, emergency_key):
-            guide_screen = self.manager.get_screen(screen_name)
-            guide_screen.emergency_key = emergency_key.lower()  # Match your GPIO dict keys
-            self.manager.transition_to(screen_name)        
+        self.manager.current_data = emergency_key
+        self.manager.transition_to(screen_name)     
             
 RELAY_PINS = {
         "sprains and strains": 14,
@@ -570,6 +707,8 @@ class DrawerApp(MDApp):
         sm.add_widget(StartScreen(name='start'))
         sm.add_widget(MainMenuScreen(name='menu'))
         sm.add_widget(EmergencyScreen(name='emergency'))
+        sm.add_widget(TriageScreen(name='triage'))
+        sm.add_widget(SevereScreen(name='severe_screen'))
         
         for data in guide_data.values():
             sm.add_widget(EmergencyGuideScreen(images=data["images"], name=data["screen"],emergency_key=data["key"]))
