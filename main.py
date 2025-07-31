@@ -37,6 +37,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.animation import Animation
 from kivymd.uix.snackbar import Snackbar
 import time as t
+import serial
 from time import time
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.dialog import MDDialog
@@ -61,40 +62,93 @@ COLORS = {
     "gray_orange": get_color_from_hex("#ead196"),
     "light_gray": get_color_from_hex("#eeeeee"),
 }
-# Timeout to return startscreen
-# class TimeoutMixin:
-#     timeout_registry = {}
+number = "09760691268"
+location = "Studio"
+RELAY_PINS = {
+        "Sprains and Strains": 24,
+        "Nosebleeds": 25,
+        "Laceration (Cut)": 18,
+        "Insect Bites or Minor Allergic Reactions": 23,
+        "Bruise / Contusion": 12,
+        "Fainting": 16,
+        "Burns (1st or 2nd)": 20,
+        "Choking (Partial)": 21,
+    }
 
-#     def __init__(self, timeout_sec=30):
-#         self.timeout_event = None
-#         self.timeout_sec = timeout_sec
-
-#         def register(dt):
-#             TimeoutMixin.timeout_registry[self.name] = self
-
-#         Clock.schedule_once(register, 0)
-
-#         if not hasattr(TimeoutMixin, 'bound'):
-#             EventLoop.window.bind(on_touch_down=TimeoutMixin._global_touch_handler)
-#             TimeoutMixin.bound = True
-
-#     @staticmethod
-#     def _global_touch_handler(*args):
-#         current = App.get_running_app().root.current
-#         active_screen = TimeoutMixin.timeout_registry.get(current)
-#         if active_screen:
-#             active_screen.reset_timeout()
-
-#     def reset_timeout(self):
-#         if self.timeout_event:
-#             self.timeout_event.cancel()
-#         self.timeout_event = Clock.schedule_once(self.on_timeout, self.timeout_sec)
-
-#     def on_timeout(self, dt):
-#         self.manager.transition.direction = 'right'
-#         self.manager.current = 'start'
-
-
+guide_data = {
+    "Sprains and Strains": {
+        "images": [f"images/sprain{str(i).zfill(2)}.jpg" for i in range(1, 7)],
+        "screen": "sprain_guide",
+        "key": "Sprains and Strains",
+        "question_bg": "images/sprainQuestions.jpg",
+        "questions": [
+            "Did you hear a “pop” or feel a snap when the injury happened?",
+            "Is the area swollen, bruised, or painful to move?",
+            "Is the person unable to move the area at all?"
+        ],
+        "severe_bg": "images/sprainSevere.jpg"
+    },
+    "Laceration (Cut)": {
+        "images": [f"images/laceration{str(i).zfill(2)}.jpg" for i in range(1, 10)],
+        "screen": "laceration_guide",
+        "key": "Laceration (Cut)",
+        "question_bg": "images/lacerationQuestions.jpg",
+        "questions": [
+            "Is the wound bleeding heavily and not stopping?",
+            "Is something stuck in the wound (glass, metal)?",
+            "Is the cut deep or very large?"
+        ],
+        "severe_bg": "images/lacerationSevere.jpg"
+    },
+    "Bruise / Contusion": {
+        "images": [f"images/bruise{str(i).zfill(2)}.jpg" for i in range(1, 7)],
+        "screen": "bruise_guide",
+        "key": "Bruise / Contusion",
+        "question_bg": "images/bruiseQuestions.jpg",
+        "questions": [
+            "Is there severe pain or swelling in the injured area?",
+            "Was the bruise caused by a strong impact to the head, chest, or back?",
+            "Does the skin look very dark, purple, or oddly shaped?"
+        ],
+        "severe_bg": "images/bruiseSevere.jpg"
+    },
+    "Nosebleeds": {
+        "images": [f"images/nosebleed{str(i).zfill(2)}.jpg" for i in range(1, 8)],
+        "screen": "nosebleed_guide",
+        "key": "Nosebleeds",
+        "question_bg": "images/nosebleedQuestions.jpg",
+        "questions": [
+            "Has the nosebleed lasted more than 20 minutes?",
+            "Was the nosebleed caused by a head injury or trauma?",
+            "Is the person feeling faint, dizzy, or very weak?"
+        ],
+        "severe_bg": "images/nosebleedSevere.jpg"
+    },
+    "Insect Bites": {
+        "images": [f"images/insectbite{str(i).zfill(2)}.jpg" for i in range(1, 8)],
+        "screen": "insect_bite_guide",
+        "key": "Insect Bites or Minor Allergic Reactions",
+        "question_bg": "images/insectbiteQuestions.jpg",
+        "questions": [
+            "Is the person having trouble breathing or swallowing?",
+            "Is there swelling on the face, lips, or throat?",
+            "Is the person dizzy, confused, or showing signs of fainting?"
+        ],
+        "severe_bg": "images/insectbiteSevere.jpg"
+    },
+    "Burns (1st or 2nd)": {
+        "images": [f"images/burns{str(i).zfill(2)}.jpg" for i in range(1, 8)],
+        "screen": "burns_guide",
+        "key": "Burns (1st or 2nd)",
+        "question_bg": "images/burnsQuestions.jpg",
+        "questions": [
+            "Is the burn larger than the size of the person's hand?",
+            "Are there open blisters or raw, peeling skin?",
+            "Was the burn caused by chemicals or electricity?"
+        ],
+        "severe_bg": "images/burnsSevere.jpg"
+    },
+}
 def show_pin_popup(self, *args):
     popup = ModalView(size_hint=(0.6, 0.65), auto_dismiss=True)
 
@@ -133,7 +187,66 @@ def show_pin_popup(self, *args):
 
     popup.add_widget(layout)
     popup.open()
+    
+def show_settings_popup():
+    global number, location
+
+    settings_popup = ModalView(size_hint=(0.3, 0.2), auto_dismiss=True)
+    layout = BoxLayout(orientation='vertical', padding=dp(20), spacing=dp(15))
+
+    input_box_style = {
+        "size_hint_y": None,
+        "height": dp(48),
+        "font_size": "18sp",
+        "halign": "left"
+    }
+
+    number_input = TextInput(
+        text=number,
+        hint_text="Phone Number",
+        input_filter="int",
+        input_type='number',
+        multiline=False,
+        **input_box_style
+    )
+
+    location_input = TextInput(
+        text=location,
+        hint_text="Location",
+        input_type='text',
+        multiline=False,
+        **input_box_style
+    )
+
+    def save_settings(instance):
+        global number, location
+        number = number_input.text.strip()
+        location = location_input.text.strip()
+        settings_popup.dismiss()
+    def focus_number_input(dt):
+        number_input.focus = True
+    btn_layout = BoxLayout(
+        size_hint_y=None,
+        height=dp(40),
+        spacing=dp(10),
+        padding=(0, dp(10)),
+        size_hint=(.3, None),
         
+        pos_hint={'center_x': 0.5}
+    )
+    btn_layout.add_widget(MDRaisedButton(text="Cancel",md_bg_color=get_color_from_hex("#4CAF50"), on_release=lambda x: settings_popup.dismiss()))
+    btn_layout.add_widget(MDRaisedButton(text="Save",md_bg_color=get_color_from_hex("#F44336"), on_release=save_settings))
+
+    layout.add_widget(number_input)
+    layout.add_widget(location_input)
+    layout.add_widget(btn_layout)
+
+    settings_popup.add_widget(layout)
+    settings_popup.open()   
+    Clock.schedule_once(focus_number_input, 0.3)
+    
+    
+
 #Screens
 class StartScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -219,6 +332,9 @@ class TappableLabel(Label):
         def check_pin(pin):
             if pin == "2222":
                 App.get_running_app().stop()
+            elif pin == "1111":
+                popup.dismiss()
+                Clock.schedule_once(lambda dt: show_settings_popup())
         def add_btn(text, action=None):
             debounce_flag = {"ready": True}
 
@@ -318,80 +434,7 @@ class MainMenuScreen(MDScreen):
         self.manager.transition = FadeTransition(duration=0.2)
         self.manager.current = 'emergency'    
 
-guide_data = {
-    "Sprains and Strains": {
-        "images": [f"images/sprain{str(i).zfill(2)}.jpg" for i in range(1, 7)],
-        "screen": "sprain_guide",
-        "key": "Sprains and Strains",
-        "question_bg": "images/sprainQuestions.jpg",
-        "questions": [
-            "Did you hear a “pop” or feel a snap when the injury happened?",
-            "Is the area swollen, bruised, or painful to move?",
-            "Is the person unable to move the area at all?"
-        ],
-        "severe_bg": "images/sprainSevere.jpg"
-    },
-    "Laceration (Cut)": {
-        "images": [f"images/laceration{str(i).zfill(2)}.jpg" for i in range(1, 10)],
-        "screen": "laceration_guide",
-        "key": "Laceration (Cut)",
-        "question_bg": "images/lacerationQuestions.jpg",
-        "questions": [
-            "Is the wound bleeding heavily and not stopping?",
-            "Is something stuck in the wound (glass, metal)?",
-            "Is the cut deep or very large?"
-        ],
-        "severe_bg": "images/lacerationSevere.jpg"
-    },
-    "Bruise / Contusion": {
-        "images": [f"images/bruise{str(i).zfill(2)}.jpg" for i in range(1, 7)],
-        "screen": "bruise_guide",
-        "key": "Bruise / Contusion",
-        "question_bg": "images/bruiseQuestions.jpg",
-        "questions": [
-            "Is there severe pain or swelling in the injured area?",
-            "Was the bruise caused by a strong impact to the head, chest, or back?",
-            "Does the skin look very dark, purple, or oddly shaped?"
-        ],
-        "severe_bg": "images/bruiseSevere.jpg"
-    },
-    "Nosebleeds": {
-        "images": [f"images/nosebleed{str(i).zfill(2)}.jpg" for i in range(1, 8)],
-        "screen": "nosebleed_guide",
-        "key": "Nosebleeds",
-        "question_bg": "images/nosebleedQuestions.jpg",
-        "questions": [
-            "Has the nosebleed lasted more than 20 minutes?",
-            "Was the nosebleed caused by a head injury or trauma?",
-            "Is the person feeling faint, dizzy, or very weak?"
-        ],
-        "severe_bg": "images/nosebleedSevere.jpg"
-    },
-    "Insect Bites": {
-        "images": [f"images/insectbite{str(i).zfill(2)}.jpg" for i in range(1, 8)],
-        "screen": "insect_bite_guide",
-        "key": "Insect Bites or Minor Allergic Reactions",
-        "question_bg": "images/insectbiteQuestions.jpg",
-        "questions": [
-            "Is the person having trouble breathing or swallowing?",
-            "Is there swelling on the face, lips, or throat?",
-            "Is the person dizzy, confused, or showing signs of fainting?"
-        ],
-        "severe_bg": "images/insectbiteSevere.jpg"
-    },
-    "Burns (1st or 2nd)": {
-        "images": [f"images/burns{str(i).zfill(2)}.jpg" for i in range(1, 8)],
-        "screen": "burns_guide",
-        "key": "Burns (1st or 2nd)",
-        "question_bg": "images/burnsQuestions.jpg",
-        "questions": [
-            "Is the burn larger than the size of the person's hand?",
-            "Are there open blisters or raw, peeling skin?",
-            "Was the burn caused by chemicals or electricity?"
-        ],
-        "severe_bg": "images/burnsSevere.jpg"
-    },
-}
+
 
 class TriageScreen(MDScreen):
     def on_pre_enter(self):
@@ -480,7 +523,6 @@ class TriageScreen(MDScreen):
         anim_out.bind(on_complete=update_label)
         anim_out.start(self.question_label)
 
-
     def on_yes(self, *args):
         self.show_dialog()
 
@@ -553,21 +595,18 @@ class TriageScreen(MDScreen):
         screen = self.manager.get_screen("severe_screen")
         screen.set_background(guide_data[self.data]["severe_bg"])
         self.manager.current = "severe_screen"
+        send_sms(self.data)
 
 class SevereScreen(MDScreen):
     def set_background(self, image_path):
         self.clear_widgets()
         layout = BoxLayout(orientation='vertical')
-
-        # Background image fills screen
         layout.add_widget(Image(
             source=image_path,
             allow_stretch=True,
             keep_ratio=False,
             size_hint=(1, 1)
         ))
-
-        # Overlay button at bottom using FloatLayout
         float_layout = FloatLayout()
         float_layout.add_widget(MDFillRoundFlatButton(
             text="MAIN MENU",
@@ -676,17 +715,6 @@ class EmergencyScreen(MDScreen):
         self.manager.current_data = emergency_key
         self.manager.transition_to(screen_name)     
             
-RELAY_PINS = {
-        "Sprains and Strains": 24,
-        "Nosebleeds": 25,
-        "Laceration (Cut)": 18,
-        "Insect Bites or Minor Allergic Reactions": 23,
-        "Bruise / Contusion": 12,
-        "Fainting": 16,
-        "Burns (1st or 2nd)": 20,
-        "Choking (Partial)": 21,
-    }
-
 
 
 class EmergencyGuideScreen(MDScreen):
@@ -824,7 +852,24 @@ class EmergencyGuideScreen(MDScreen):
 
     def trigger_emergency(self, *args):
         print("[ALERT] Emergency triggered!")
+        send_sms(self.emergency_key)
 
+        
+def send_sms(emergency):
+    global number, location
+    message = f"Emergency assistance requested for {emergency} at {location}"
+
+    
+    try:
+        with serial.Serial("/dev/serial0", 9600, timeout=1) as ser:
+            ser.write(b'AT+CMGF=1\r')
+            time.sleep(0.5)
+            ser.write(f'AT+CMGS="{number}"\r'.encode())
+            time.sleep(0.5)
+            ser.write(f'{message}\x1A'.encode())
+            time.sleep(3)
+    except Exception as e:
+        print("SMS sending failed:", e)
 
 class DrawerApp(MDApp):
     def build(self):
