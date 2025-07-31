@@ -1,5 +1,6 @@
 from kivy.config import Config
 Config.set('graphics', 'fullscreen', 'auto')
+Config.set('kivy','keyboard_mode', 'dock')
 try:
     import RPi.GPIO as GPIO
 except ImportError:
@@ -36,6 +37,8 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.animation import Animation
 from kivymd.uix.snackbar import Snackbar
+from kivy.uix.vkeyboard import VKeyboard
+
 import time as t
 import serial
 from time import time
@@ -245,8 +248,6 @@ def show_settings_popup():
     settings_popup.open()   
     Clock.schedule_once(focus_number_input, 0.3)
     
-    
-
 #Screens
 class StartScreen(MDScreen):
     def __init__(self, **kwargs):
