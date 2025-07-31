@@ -64,8 +64,8 @@ COLORS = {
     "gray_orange": get_color_from_hex("#ead196"),
     "light_gray": get_color_from_hex("#eeeeee"),
 }
-number = "09760691268"
-location = "Studio"
+number = "09166398890"
+location = "BE BUILDING"
 RELAY_PINS = {
         "Sprains and Strains": 24,
         "Nosebleeds": 25,
