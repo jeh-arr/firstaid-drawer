@@ -38,7 +38,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.animation import Animation
 from kivymd.uix.snackbar import Snackbar
 from kivy.uix.vkeyboard import VKeyboard
-
 import time as t
 import serial
 from time import time
@@ -864,11 +863,11 @@ def send_sms(emergency):
     try:
         with serial.Serial("/dev/serial0", 9600, timeout=1) as ser:
             ser.write(b'AT+CMGF=1\r')
-            time.sleep(0.5)
+            t.sleep(0.5)
             ser.write(f'AT+CMGS="{number}"\r'.encode())
-            time.sleep(0.5)
+            t.sleep(0.5)
             ser.write(f'{message}\x1A'.encode())
-            time.sleep(3)
+            t.sleep(3)
     except Exception as e:
         print("SMS sending failed:", e)
 
