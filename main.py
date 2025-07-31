@@ -35,6 +35,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.animation import Animation
+from kivymd.uix.snackbar import Snackbar
 import time as t
 from time import time
 from kivymd.uix.textfield import MDTextField
@@ -279,6 +280,7 @@ class MainMenuScreen(MDScreen):
             color=get_color_from_hex("#7c0a0a"),
         ))
         card.add_widget(Widget(size_hint_y=None, height=dp(60)))
+        
         emergency_btn = MDFillRoundFlatButton(
             text="EMERGENCY",
             font_name="Spartan-Medium",
@@ -290,7 +292,7 @@ class MainMenuScreen(MDScreen):
             pos_hint={"center_x": 0.5},
             padding=(0, dp(50)),
         )
-        emergency_btn.set_radius()
+        
         emergency_btn.bind(on_release=self.goto_emergency)
 
         learn_btn = MDFillRoundFlatButton(
@@ -320,7 +322,7 @@ guide_data = {
     "Sprains and Strains": {
         "images": [f"images/sprain{str(i).zfill(2)}.jpg" for i in range(1, 7)],
         "screen": "sprain_guide",
-        "key": "sprains",
+        "key": "sprain",
         "question_bg": "images/sprainQuestions.jpg",
         "questions": [
             "Did you hear a “pop” or feel a snap when the injury happened?",
@@ -434,27 +436,30 @@ class TriageScreen(MDScreen):
             height=120,
             pos_hint={'center_x': 0.5}
         )
-
+        
         yes_btn = MDRaisedButton(
             text="YES",
+            font_name="Spartan-Medium",
             md_bg_color=get_color_from_hex("#4CAF50"),
-            font_size="50sp",            
+            font_size="50sp",
             pos_hint={"center_x": 0.5},
             size_hint =(.8, None),
             height=dp(120),
         )
         no_btn = MDRaisedButton(
             text="NO",
+            font_name="Spartan-Medium",
             md_bg_color=get_color_from_hex("#F44336"),
             font_size="50sp",
             pos_hint={"center_x": 0.5},
+            
             size_hint =(.8, None),
             height=dp(120),
         )
         
         yes_btn.bind(on_release=self.on_yes)
         no_btn.bind(on_release=self.on_no)
-
+        
         btn_layout.add_widget(yes_btn)
         btn_layout.add_widget(no_btn)
         layout.add_widget(btn_layout)
@@ -553,9 +558,31 @@ class SevereScreen(MDScreen):
     def set_background(self, image_path):
         self.clear_widgets()
         layout = BoxLayout(orientation='vertical')
-        layout.add_widget(Image(source=image_path, allow_stretch=True, keep_ratio=False))
-        layout.add_widget(MDRaisedButton(text="Main Menu", size_hint=(None, None), size=(200, 60), pos_hint={"center_x": 0.5}, on_release=self.goto_main))
+
+        # Background image fills screen
+        layout.add_widget(Image(
+            source=image_path,
+            allow_stretch=True,
+            keep_ratio=False,
+            size_hint=(1, 1)
+        ))
+
+        # Overlay button at bottom using FloatLayout
+        float_layout = FloatLayout()
+        float_layout.add_widget(MDFillRoundFlatButton(
+            text="MAIN MENU",
+            font_name="Spartan-SemiBold",
+            font_size="40sp",
+            md_bg_color=get_color_from_hex("#ead196"),
+            text_color=get_color_from_hex("#7c0a0a"),
+            size_hint=(None, None),
+            size=(245, 80),
+            pos_hint={"center_x": 0.5, "y": 0.05},
+            on_release=self.goto_main
+        ))
+
         self.add_widget(layout)
+        self.add_widget(float_layout)
 
     def goto_main(self, *args):
         self.manager.current = "start"
@@ -650,11 +677,11 @@ class EmergencyScreen(MDScreen):
         self.manager.transition_to(screen_name)     
             
 RELAY_PINS = {
-        "sprains and strains": 14,
+        "sprain": 14,
         "nosebleeds": 15,
-        "laceration (cut)": 18,
+        "laceration": 18,
         "insect bites": 23,
-        "bruise / contusion": 12,
+        "bruise": 12,
         "fainting": 16,
         "burns (1st or 2nd)": 20,
         "choking (partial)": 21,
@@ -675,10 +702,26 @@ class EmergencyGuideScreen(MDScreen):
         if pin is None:
             print(f"[ERROR] Unknown solenoid key: {key}")
             return
+
         print(f"[INFO] Activating {key} (GPIO {pin})")
         GPIO.output(pin, GPIO.LOW)
-        t.sleep(duration)
-        GPIO.output(pin, GPIO.HIGH)
+
+        # Run Snackbar on main thread
+        Clock.schedule_once(lambda dt: 
+            Snackbar(
+                text=f"[color=#7c0a0a]{key} drawer activated[/color]",
+                bg_color=get_color_from_hex("#ead196"),
+                font_size="20sp",
+                size_hint_x=None,
+                width=dp(800),  # or whatever wide value you want
+                snackbar_x="10dp",
+                snackbar_y=f"{Window.height - dp(70)}dp",
+                snackbar_animation_dir="Top",
+                duration=2
+            ).open(), 0)
+
+        # Deactivate GPIO after duration
+        Clock.schedule_once(lambda dt: GPIO.output(pin, GPIO.HIGH), duration)
     def on_leave(self, *args):
         GPIO.cleanup()
     def __init__(self, images,emergency_key, **kwargs):
@@ -738,6 +781,8 @@ class EmergencyGuideScreen(MDScreen):
         self.gpio_setup()
         self.index = 0
         self.update_image()
+        if self.emergency_key:
+            threading.Thread(target=self.activate_solenoid, args=(self.emergency_key,), daemon=True).start()
     def update_image(self):
         self.bg.source = self.images[self.index]
         self.update_buttons()
@@ -762,8 +807,7 @@ class EmergencyGuideScreen(MDScreen):
             self.index += 1
             self.update_image()
         
-            if self.index == 1 and self.emergency_key:
-                threading.Thread(target=self.activate_solenoid, args=(self.emergency_key,), daemon=True).start()
+           
         else:
             
             self.manager.transition_to("menu")
