@@ -677,8 +677,8 @@ class EmergencyScreen(MDScreen):
         self.manager.transition_to(screen_name)     
             
 RELAY_PINS = {
-        "Sprains and Strains": 14,
-        "Nosebleeds": 15,
+        "Sprains and Strains": 24,
+        "Nosebleeds": 25,
         "Laceration (Cut)": 18,
         "Insect Bites or Minor Allergic Reactions": 23,
         "Bruise / Contusion": 12,
