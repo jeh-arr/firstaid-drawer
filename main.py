@@ -194,7 +194,7 @@ def show_pin_popup(self, *args):
 def show_settings_popup():
     global number, location
 
-    settings_popup = ModalView(size_hint=(0.3, 0.2), auto_dismiss=True)
+    settings_popup = ModalView(size_hint=(0.3, 0.2), auto_dismiss=True,pos_hint={"center_x": 0.5, "center_y": 0.7}, )
     layout = BoxLayout(orientation='vertical', padding=dp(20), spacing=dp(15))
 
     input_box_style = {
@@ -237,8 +237,8 @@ def show_settings_popup():
         
         pos_hint={'center_x': 0.5}
     )
-    btn_layout.add_widget(MDRaisedButton(text="Cancel",md_bg_color=get_color_from_hex("#4CAF50"), on_release=lambda x: settings_popup.dismiss()))
-    btn_layout.add_widget(MDRaisedButton(text="Save",md_bg_color=get_color_from_hex("#F44336"), on_release=save_settings))
+    btn_layout.add_widget(MDRaisedButton(text="Cancel",md_bg_color=get_color_from_hex("#F44336"), on_release=lambda x: settings_popup.dismiss()))
+    btn_layout.add_widget(MDRaisedButton(text="Save",md_bg_color=get_color_from_hex("#4CAF50"), on_release=save_settings))
 
     layout.add_widget(number_input)
     layout.add_widget(location_input)
