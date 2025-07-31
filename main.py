@@ -322,7 +322,7 @@ guide_data = {
     "Sprains and Strains": {
         "images": [f"images/sprain{str(i).zfill(2)}.jpg" for i in range(1, 7)],
         "screen": "sprain_guide",
-        "key": "sprain",
+        "key": "Sprains and Strains",
         "question_bg": "images/sprainQuestions.jpg",
         "questions": [
             "Did you hear a “pop” or feel a snap when the injury happened?",
@@ -334,7 +334,7 @@ guide_data = {
     "Laceration (Cut)": {
         "images": [f"images/laceration{str(i).zfill(2)}.jpg" for i in range(1, 10)],
         "screen": "laceration_guide",
-        "key": "laceration",
+        "key": "Laceration (Cut)",
         "question_bg": "images/lacerationQuestions.jpg",
         "questions": [
             "Is the wound bleeding heavily and not stopping?",
@@ -346,7 +346,7 @@ guide_data = {
     "Bruise / Contusion": {
         "images": [f"images/bruise{str(i).zfill(2)}.jpg" for i in range(1, 7)],
         "screen": "bruise_guide",
-        "key": "bruise",
+        "key": "Bruise / Contusion",
         "question_bg": "images/bruiseQuestions.jpg",
         "questions": [
             "Is there severe pain or swelling in the injured area?",
@@ -358,7 +358,7 @@ guide_data = {
     "Nosebleeds": {
         "images": [f"images/nosebleed{str(i).zfill(2)}.jpg" for i in range(1, 8)],
         "screen": "nosebleed_guide",
-        "key": "nosebleeds",
+        "key": "Nosebleeds",
         "question_bg": "images/nosebleedQuestions.jpg",
         "questions": [
             "Has the nosebleed lasted more than 20 minutes?",
@@ -370,7 +370,7 @@ guide_data = {
     "Insect Bites": {
         "images": [f"images/insectbite{str(i).zfill(2)}.jpg" for i in range(1, 8)],
         "screen": "insect_bite_guide",
-        "key": "insect bites",
+        "key": "Insect Bites or Minor Allergic Reactions",
         "question_bg": "images/insectbiteQuestions.jpg",
         "questions": [
             "Is the person having trouble breathing or swallowing?",
@@ -382,7 +382,7 @@ guide_data = {
     "Burns (1st or 2nd)": {
         "images": [f"images/burns{str(i).zfill(2)}.jpg" for i in range(1, 8)],
         "screen": "burns_guide",
-        "key": "burns",
+        "key": "Burns (1st or 2nd)",
         "question_bg": "images/burnsQuestions.jpg",
         "questions": [
             "Is the burn larger than the size of the person's hand?",
@@ -677,14 +677,14 @@ class EmergencyScreen(MDScreen):
         self.manager.transition_to(screen_name)     
             
 RELAY_PINS = {
-        "sprain": 14,
-        "nosebleeds": 15,
-        "laceration": 18,
-        "insect bites": 23,
-        "bruise": 12,
-        "fainting": 16,
-        "burns (1st or 2nd)": 20,
-        "choking (partial)": 21,
+        "Sprains and Strains": 14,
+        "Nosebleeds": 15,
+        "Laceration (Cut)": 18,
+        "Insect Bites or Minor Allergic Reactions": 23,
+        "Bruise / Contusion": 12,
+        "Fainting": 16,
+        "Burns (1st or 2nd)": 20,
+        "Choking (Partial)": 21,
     }
 
 
@@ -697,7 +697,7 @@ class EmergencyGuideScreen(MDScreen):
             GPIO.setup(pin, GPIO.OUT)
             GPIO.output(pin, GPIO.HIGH)
 
-    def activate_solenoid(self, key, duration=3):
+    def activate_solenoid(self, key, duration=5):
         pin = RELAY_PINS.get(key)
         if pin is None:
             print(f"[ERROR] Unknown solenoid key: {key}")
@@ -705,17 +705,18 @@ class EmergencyGuideScreen(MDScreen):
 
         print(f"[INFO] Activating {key} (GPIO {pin})")
         GPIO.output(pin, GPIO.LOW)
-
+        snackbar_width = dp(800)
+        snackbar_x = (Window.width - snackbar_width) / 2
         # Run Snackbar on main thread
         Clock.schedule_once(lambda dt: 
             Snackbar(
-                text=f"[color=#7c0a0a]{key} drawer activated[/color]",
+                text=f"[color=#7c0a0a]{key} Drawer Opened![/color]",
                 bg_color=get_color_from_hex("#ead196"),
-                font_size="20sp",
+                font_size="30sp",
                 size_hint_x=None,
                 width=dp(800),  # or whatever wide value you want
-                snackbar_x="10dp",
-                snackbar_y=f"{Window.height - dp(70)}dp",
+                snackbar_x=snackbar_x,
+                snackbar_y=f"{Window.height - dp(100)}dp",
                 snackbar_animation_dir="Top",
                 duration=2
             ).open(), 0)
