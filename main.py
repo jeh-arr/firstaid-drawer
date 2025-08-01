@@ -595,7 +595,8 @@ class TriageScreen(MDScreen):
         screen = self.manager.get_screen("severe_screen")
         screen.set_background(guide_data[self.data]["severe_bg"])
         self.manager.current = "severe_screen"
-        send_sms(self.data)
+        threading.Thread(target=send_sms, args=(self.data,)).start()
+        
 
 class SevereScreen(MDScreen):
     def set_background(self, image_path):
@@ -852,8 +853,7 @@ class EmergencyGuideScreen(MDScreen):
 
     def trigger_emergency(self, *args):
         print("[ALERT] Emergency triggered!")
-        send_sms(self.emergency_key)
-
+        threading.Thread(target=send_sms, args=(self.emergency_key,)).start()
         
 def send_sms(emergency):
     global number, location
